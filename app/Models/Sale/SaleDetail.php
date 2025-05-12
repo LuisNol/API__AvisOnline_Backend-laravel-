@@ -2,48 +2,44 @@
 
 namespace App\Models\Sale;
 
-use App\User;
 use Carbon\Carbon;
 use App\Models\Product\Product;
-use App\Models\Sale\Review\Review;
-use App\Models\Product\ProductSize;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Product\ProductColorSize;
+use App\Models\Product\ProductVariation;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class SaleDetail extends Model
 {
+    use HasFactory;
     use SoftDeletes;
     protected $fillable = [
         "sale_id",
         "product_id",
         "type_discount",
         "discount",
-        "cantidad",
-        "product_size_id",
-        "product_color_size_id",
+        "type_campaing",
         "code_cupon",
         "code_discount",
-        "precio_unitario",
+        "product_variation_id",
+        "quantity",
+        "price_unit",
         "subtotal",
         "total",
+        "currency",
+        // 
+        "created_at",
+        "updated_at"
     ];
 
-    public function setCreatedAtAttribute($value)
-    {
-    	date_default_timezone_set("America/Lima");
-        $this->attributes["created_at"]= Carbon::now();
-    }
-    public function setUpdatedAtAttribute($value)
-    {
-    	date_default_timezone_set("America/Lima");
-        $this->attributes["updated_at"]= Carbon::now();
-    }
-
-    public function client()
-    {
-        return $this->belongsTo(User::class,"user_id");
-    }
+    // public function setCreatedAtAttribute($value){
+    //     date_default_timezone_set("America/Lima");
+    //     $this->attributes["created_at"] = Carbon::now();
+    // }
+    // public function setUpdatedtAttribute($value){
+    //     date_default_timezone_set("America/Lima");
+    //     $this->attributes["updated_at"] = Carbon::now();
+    // }
 
     public function sale()
     {
@@ -55,17 +51,13 @@ class SaleDetail extends Model
         return $this->belongsTo(Product::class);
     }
 
-    public function product_size()
+    public function product_variation()
     {
-        return $this->belongsTo(ProductSize::class);
-    }
-    public function product_color_size()
-    {
-        return $this->belongsTo(ProductColorSize::class);
+        return $this->belongsTo(ProductVariation::class);
     }
 
     public function review()
     {
-        return $this->hasOne(Review::class);
+        return $this->hasOne(Review::class,"sale_detail_id");
     }
 }
