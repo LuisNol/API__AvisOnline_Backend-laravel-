@@ -137,7 +137,7 @@ Route::group([
         Route::get("profile_client/orders",[SaleController::class,"orders"]);
         Route::post("profile_client",[AuthController::class,"update"]);
         Route::resource('reviews', ReviewController::class);
-
+       ///hola
     });
 
 });
