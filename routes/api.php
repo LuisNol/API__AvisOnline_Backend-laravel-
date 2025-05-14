@@ -138,6 +138,7 @@ Route::group([
         Route::post("profile_client",[AuthController::class,"update"]);
         Route::resource('reviews', ReviewController::class);
        ///hola
+       //hola2
     });
 
 });
