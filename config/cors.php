@@ -19,7 +19,8 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*'],
+    //'allowed_origins' => ['*'],
+    'allowed_origins' => ['https://www.avisonline.store'],
 
     'allowed_origins_patterns' => [],
 
@@ -33,7 +34,7 @@ return [
         'Origin'
     ],
 
-    'max_age' => 3600,
+    'max_age' => 0,
 
     'supports_credentials' => true,
 
