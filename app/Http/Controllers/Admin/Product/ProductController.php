@@ -9,6 +9,7 @@ use App\Models\Product\Product;
 use App\Models\Product\Categorie;
 use App\Http\Controllers\Controller;
 use App\Models\Product\ProductImage;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Resources\Product\ProductResource;
 use App\Http\Resources\Product\ProductCollection;
@@ -25,9 +26,19 @@ class ProductController extends Controller
         $categorie_second_id = $request->categorie_second_id;
         $categorie_third_id = $request->categorie_third_id;
         $brand_id = $request->brand_id;
-                            
-        $products = Product::filterAdvanceProduct($search,$categorie_first_id,$categorie_second_id,$categorie_third_id,$brand_id)
-                                ->orderBy("id","desc")->paginate(25);
+        
+        $user = auth('api')->user();
+        $query = Product::filterAdvanceProduct($search, $categorie_first_id, $categorie_second_id, $categorie_third_id, $brand_id);
+        
+        // Si el usuario tiene rol Admin o permiso manage-products, puede ver todos los productos
+        if (!$user->hasRole('Admin') && !$user->hasPermission('manage-products')) {
+            // Si solo tiene permiso para gestionar sus propios productos
+            if ($user->hasPermission('manage-own-products')) {
+                $query = $query->where('user_id', $user->id);
+            }
+        }
+        
+        $products = $query->orderBy("id", "desc")->paginate(25);
 
         return response()->json([
             "total" => $products->total(),
@@ -36,7 +47,6 @@ class ProductController extends Controller
     }
 
     public function config(){
-
         $categories_first = Categorie::where("state",1)->where("categorie_second_id",NULL)->where("categorie_third_id",NULL)->get();
         $categories_seconds = Categorie::where("state",1)->where("categorie_second_id","<>",NULL)->where("categorie_third_id",NULL)->get();
         $categories_thirds = Categorie::where("state",1)->where("categorie_second_id","<>",NULL)->where("categorie_third_id","<>",NULL)->get();
@@ -54,25 +64,125 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
-        $isValid = Product::where("title",$request->title)->first();
-        if($isValid){
-            return response()->json(["message" => 403,"message_text" => "El nombre del producto ya existe"]);
+        // Registrar la información de la solicitud
+        \Log::info('Solicitud para crear producto recibida', [
+            'headers' => $request->header(),
+            'user_id' => auth('api')->id(),
+            'permission_header' => $request->header('X-User-Permission')
+        ]);
+        
+        // Verificar si el usuario tiene permisos para crear productos
+        $user = auth('api')->user();
+        
+        // Obtener el permiso específico del encabezado si existe
+        $headerPermission = $request->header('X-User-Permission');
+        \Log::info('Permiso en el encabezado: ' . $headerPermission);
+        
+        // Verificar permisos basado en el encabezado y los permisos del usuario
+        $isAdmin = $user->hasRole('Admin');
+        $canManageProducts = $user->hasPermission('manage-products');
+        $canManageOwnProducts = $user->hasPermission('manage-own-products');
+        
+        \Log::info('Verificación de permisos', [
+            'user_id' => $user->id,
+            'user_name' => $user->name,
+            'is_admin' => $isAdmin,
+            'has_manage_products' => $canManageProducts,
+            'has_manage_own_products' => $canManageOwnProducts,
+            'header_permission' => $headerPermission
+        ]);
+        
+        // Si el usuario no tiene ningún permiso para crear productos
+        if (!$isAdmin && !$canManageProducts && !$canManageOwnProducts) {
+            \Log::warning('Intento de crear producto sin permisos', [
+                'user_id' => $user->id,
+                'user_name' => $user->name
+            ]);
+            
+            return response()->json([
+                "message" => 403, 
+                "message_text" => "No tienes permiso para crear productos"
+            ]);
         }
-        if($request->hasFile("portada")){
-            $path = Storage::putFile("products",$request->file("portada"));
-            $request->request->add(["imagen" => $path]);
+        
+        // Verificar si el producto ya existe
+        $isValid = Product::where("title", $request->title)->first();
+        if ($isValid) {
+            return response()->json([
+                "message" => 403, 
+                "message_text" => "El nombre del producto ya existe"
+            ]);
+        }
+        
+        // Procesar la imagen si se proporcionó
+        if ($request->hasFile("portada")) {
+            $file = $request->file("portada");
+            $filename = uniqid() . '_' . $file->getClientOriginalName();
+            $publicPath = public_path('storage/products');
+            if (!file_exists($publicPath)) {
+                mkdir($publicPath, 0775, true);
+            }
+            $file->move($publicPath, $filename);
+            $request->request->add(["imagen" => 'products/' . $filename]);
+        } else {
+            \Log::warning('No se proporcionó imagen para el producto');
+            return response()->json([
+                "message" => 400, 
+                "message_text" => "Debe proporcionar una imagen para el producto"
+            ]);
         }
 
+        // Preparar datos adicionales
         $request->request->add(["slug" => Str::slug($request->title)]);
         $request->request->add(["tags" => $request->multiselect]);
-        $product = Product::create($request->all());
-        return response()->json([
-            "message" => 200,
-        ]);
+        
+        // Asignar el usuario actual como creador del producto
+        $request->request->add(["user_id" => $user->id]);
+        
+        // Crear el producto
+        try {
+            \Log::info('Intentando crear producto', [
+                'title' => $request->title,
+                'user_id' => $user->id,
+                'permission_used' => $headerPermission ?: ($canManageProducts ? 'manage-products' : 'manage-own-products')
+            ]);
+            
+            $product = Product::create($request->all());
+            
+            \Log::info('Producto creado exitosamente', [
+                'product_id' => $product->id,
+                'title' => $product->title,
+                'user_id' => $user->id
+            ]);
+            
+            return response()->json([
+                "message" => 200,
+                "product_id" => $product->id
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error al crear producto', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                "message" => 500,
+                "message_text" => "Error al crear el producto: " . $e->getMessage()
+            ]);
+        }
     }
 
     public function imagens(Request $request){
         $product_id = $request->product_id;
+        $product = Product::findOrFail($product_id);
+        
+        // Verificar si el usuario tiene permiso para modificar este producto
+        $user = auth('api')->user();
+        if (!$user->hasRole('Admin') && !$user->hasPermission('manage-products')) {
+            if ($user->hasPermission('manage-own-products') && $product->user_id != $user->id) {
+                return response()->json(["message" => 403, "message_text" => "No tienes permiso para modificar este producto"]);
+            }
+        }
 
         if($request->hasFile("imagen_add")){
             $path = Storage::putFile("products",$request->file("imagen_add"));
@@ -96,6 +206,14 @@ class ProductController extends Controller
     public function show(string $id)
     {
         $product = Product::findOrFail($id);
+        
+        // Verificar si el usuario tiene permiso para ver este producto
+        $user = auth('api')->user();
+        if (!$user->hasRole('Admin') && !$user->hasPermission('manage-products')) {
+            if ($user->hasPermission('manage-own-products') && $product->user_id != $user->id) {
+                return response()->json(["message" => 403, "message_text" => "No tienes permiso para ver este producto"]);
+            }
+        }
 
         return response()->json(["product" => ProductResource::make($product)]);
     }
@@ -105,16 +223,26 @@ class ProductController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        $isValid = Product::where("id","<>",$id)->where("title",$request->title)->first();
-        if($isValid){
-            return response()->json(["message" => 403,"message_text" => "El nombre del producto ya existe"]);
+        $isValid = Product::where("id", "<>", $id)->where("title", $request->title)->first();
+        if ($isValid) {
+            return response()->json(["message" => 403, "message_text" => "El nombre del producto ya existe"]);
         }
+        
         $product = Product::findOrFail($id);
-        if($request->hasFile("portada")){
-            if($product->imagen){
+        
+        // Verificar si el usuario tiene permiso para editar este producto
+        $user = auth('api')->user();
+        if (!$user->hasRole('Admin') && !$user->hasPermission('manage-products')) {
+            if ($user->hasPermission('manage-own-products') && $product->user_id != $user->id) {
+                return response()->json(["message" => 403, "message_text" => "No tienes permiso para editar este producto"]);
+            }
+        }
+        
+        if ($request->hasFile("portada")) {
+            if ($product->imagen) {
                 Storage::delete($product->imagen);
             }
-            $path = Storage::putFile("products",$request->file("portada"));
+            $path = Storage::putFile("products", $request->file("portada"));
             $request->request->add(["imagen" => $path]);
         }
 
@@ -132,8 +260,16 @@ class ProductController extends Controller
     public function destroy(string $id)
     {
         $product = Product::findOrFail($id);
+        
+        // Verificar si el usuario tiene permiso para eliminar este producto
+        $user = auth('api')->user();
+        if (!$user->hasRole('Admin') && !$user->hasPermission('manage-products')) {
+            if ($user->hasPermission('manage-own-products') && $product->user_id != $user->id) {
+                return response()->json(["message" => 403, "message_text" => "No tienes permiso para eliminar este producto"]);
+            }
+        }
+        
         $product->delete();
-        // PORQUE NO SE ELIMINAR UN PRODUCTO QUE YA TENGA UNA VENTA
         return response()->json([
             "message" => 200
         ]);
@@ -141,11 +277,21 @@ class ProductController extends Controller
 
     public function delete_imagen(string $id)
     {
-        $product = ProductImage::findOrFail($id);
-        if($product->imagen){
-            Storage::delete($product->imagen);
+        $productImage = ProductImage::findOrFail($id);
+        $product = Product::findOrFail($productImage->product_id);
+        
+        // Verificar si el usuario tiene permiso para eliminar esta imagen
+        $user = auth('api')->user();
+        if (!$user->hasRole('Admin') && !$user->hasPermission('manage-products')) {
+            if ($user->hasPermission('manage-own-products') && $product->user_id != $user->id) {
+                return response()->json(["message" => 403, "message_text" => "No tienes permiso para eliminar esta imagen"]);
+            }
         }
-        $product->delete();
+        
+        if($productImage->imagen){
+            Storage::delete($productImage->imagen);
+        }
+        $productImage->delete();
         return response()->json([
             "message" => 200
         ]);

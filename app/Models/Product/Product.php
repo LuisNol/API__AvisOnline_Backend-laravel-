@@ -27,7 +27,8 @@ class Product extends Model
         "categorie_first_id",
         "categorie_second_id",
         "categorie_third_id",
-        "stock"
+        "stock",
+        "user_id"
     ];
 
     public function setCreatedAtAttribute($value){

@@ -129,7 +129,14 @@ class AuthController extends Controller
             "email" => request()->email,
             "password" => request()->password,
             "type_user" => 1])) {
-            return response()->json(['error' => 'Unauthorized'], 401);
+            
+            // Intentar también con "ADMIN" como tipo de usuario
+            if (! $token = auth('api')->attempt([
+                "email" => request()->email,
+                "password" => request()->password,
+                "type_user" => "ADMIN"])) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
         }
  
         return $this->respondWithToken($token);
@@ -143,7 +150,14 @@ class AuthController extends Controller
             "email" => request()->email,
             "password" => request()->password,
             "type_user" => 2])) {
-            return response()->json(['error' => 'Unauthorized'], 401);
+            
+            // Intentar también con "CLIENT" como tipo de usuario
+            if (! $token = auth('api')->attempt([
+                "email" => request()->email,
+                "password" => request()->password,
+                "type_user" => "CLIENT"])) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
         }
 
         if(!auth('api')->user()->email_verified_at){
@@ -181,6 +195,57 @@ class AuthController extends Controller
             'sexo' => $user->sexo,
             'address_city' => $user->address_city,
             'avatar' => $user->avatar ? env("APP_URL")."storage/".$user->avatar : 'https://cdn-icons-png.flaticon.com/512/1476/1476614.png',
+        ]);
+    }
+
+    /**
+     * Get the authenticated User's permissions.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function permissions()
+    {
+        if (!auth('api')->check()) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+
+        $user = User::with('roles.permissions')->find(auth('api')->user()->id);
+        
+        // Lista de todos los permisos posibles
+        $allPermissions = [
+            'manage-users' => false,
+            'manage-products' => false,
+            'manage-own-products' => false,
+            // Puedes añadir más permisos aquí
+        ];
+        
+        // Marcar los permisos que el usuario tiene
+        foreach ($user->roles as $role) {
+            if ($role->name === 'Admin') {
+                // El rol Admin tiene todos los permisos
+                foreach ($allPermissions as $key => $value) {
+                    $allPermissions[$key] = true;
+                }
+                break;
+            }
+            
+            foreach ($role->permissions as $permission) {
+                if (isset($allPermissions[$permission->name])) {
+                    $allPermissions[$permission->name] = true;
+                }
+            }
+        }
+        
+        // Registrar en log para depuración
+        \Illuminate\Support\Facades\Log::info('User permissions', [
+            'user_id' => $user->id,
+            'permissions' => $allPermissions,
+            'roles' => $user->roles->pluck('name')
+        ]);
+        
+        return response()->json([
+            'permissions' => $allPermissions,
+            'roles' => $user->roles->pluck('name')
         ]);
     }
  

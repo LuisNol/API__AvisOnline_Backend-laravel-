@@ -10,11 +10,38 @@ use App\Http\Controllers\Controller;
 class KpiSaleReportController extends Controller
 {
     public function config(){
+        // Verificar permisos del usuario
+        $user = auth('api')->user();
+        $isAdmin = $user->hasRole('Admin');
+        $canManageProducts = $user->hasPermission('manage-products');
+        $canManageOwnProducts = $user->hasPermission('manage-own-products');
+        
+        // Si no tiene ningún permiso de productos, denegar acceso
+        if (!$isAdmin && !$canManageProducts && !$canManageOwnProducts) {
+            return response()->json([
+                'error' => 'Forbidden. You do not have the required permissions.',
+            ], 403);
+        }
+        
         $months_name = array("Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre");
+        
+        // Para usuarios con solo manage-own-products, enviar configuración básica
+        if (!$isAdmin && !$canManageProducts && $canManageOwnProducts) {
+            return response()->json([
+                "year" => date("Y"),
+                "month" => date("m"),
+                "meses" => $months_name,
+                "limited_access" => true,
+                "message" => "Acceso limitado. Solo puedes ver estadísticas de tus productos."
+            ]);
+        }
+        
+        // Respuesta normal para usuarios con todos los permisos
         return response()->json([
-            "year" =>date("Y"),
-            "month" =>date("m"),
+            "year" => date("Y"),
+            "month" => date("m"),
             "meses" => $months_name,
+            "limited_access" => false
         ]);
     }
 

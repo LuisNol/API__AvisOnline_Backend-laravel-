@@ -86,4 +86,40 @@ class User extends Authenticatable implements JWTSubject
     public function address(){
         return $this->hasMany(UserAddres::class,"user_id");
     }
+
+    /**
+     * The roles that belong to the user.
+     */
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class);
+    }
+
+    /**
+     * Check if the user has a specific role
+     */
+    public function hasRole($roleName)
+    {
+        return $this->roles()->where('name', $roleName)->exists();
+    }
+
+    /**
+     * Check if the user has any permission through their roles
+     */
+    public function hasPermission($permissionName)
+    {
+        // Optimización: Si es Admin, tiene todos los permisos
+        if ($this->hasRole('Admin')) {
+            return true;
+        }
+        
+        // Verificar en todos los roles del usuario
+        foreach ($this->roles as $role) {
+            if ($role->permissions()->where('name', $permissionName)->exists()) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
 }

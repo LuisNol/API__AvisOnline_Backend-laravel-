@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Product;
 
+use App\Helpers\UrlHelper;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -22,7 +23,7 @@ class ProductResource extends JsonResource
             "price_pen"  => $this->resource->price_pen,
             "price_usd"  => $this->resource->price_usd,
             "resumen"  => $this->resource->resumen,
-            "imagen"  => env("APP_URL")."storage/".$this->resource->imagen,
+            "imagen"  => UrlHelper::getStorageUrl($this->resource->imagen),
             "state"  => $this->resource->state,
             "description"  => $this->resource->description,
             "tags"  => $this->resource->tags ? json_decode($this->resource->tags) : [],
@@ -51,7 +52,7 @@ class ProductResource extends JsonResource
             "images" => $this->resource->images->map(function($image) {
                 return [
                     "id" => $image->id,
-                    "imagen" => env("APP_URL")."storage/".$image->imagen,
+                    "imagen" => UrlHelper::getStorageUrl($image->imagen),
                 ];
             })
         ];

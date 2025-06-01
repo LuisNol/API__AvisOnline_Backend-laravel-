@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\Product\AttributeProductController;
 use App\Http\Controllers\Admin\Product\ProductVariationsController;
 use App\Http\Controllers\Admin\Product\ProductSpecificationsController;
 use App\Http\Controllers\Admin\Product\ProductVariationsAnidadoController;
+use App\Http\Controllers\Admin\UserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -45,6 +46,7 @@ Route::group([
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::post('/refresh', [AuthController::class, 'refresh'])->name('refresh');
     Route::post('/me', [AuthController::class, 'me'])->name('me');
+    Route::post('/permissions', [AuthController::class, 'permissions'])->name('permissions');
     Route::post('/verified_auth', [AuthController::class, 'verified_auth'])->name('verified_auth');
     // 
     Route::post('/verified_email', [AuthController::class, 'verified_email'])->name('verified_email');
@@ -56,52 +58,82 @@ Route::group([
     "middleware" => "auth:api",
     "prefix" => "admin",
 ],function ($router) {
-    Route::get("categories/config",[CategorieController::class,"config"]);
-    Route::resource("categories",CategorieController::class);
-    Route::post("categories/{id}",[CategorieController::class,"update"]);
+    // Rutas accesibles para usuarios con permiso manage-users o rol Admin
+    Route::middleware(['permission:manage-users'])->group(function () {
+        Route::post("users-list", [App\Http\Controllers\Admin\UserController::class, "index"]);
+        Route::apiResource("users", App\Http\Controllers\Admin\UserController::class);
+        Route::post("users/{user_id}/roles/{role_id}", [App\Http\Controllers\Admin\UserController::class, "assignRole"]);
+        Route::delete("users/{user_id}/roles/{role_id}", [App\Http\Controllers\Admin\UserController::class, "removeRole"]);
+        
+        Route::post("roles-list", [App\Http\Controllers\Admin\RoleController::class, "index"]);
+        Route::post("roles/{id}/users", [App\Http\Controllers\Admin\RoleController::class, "getUsers"]);
+        Route::delete("roles/{role_id}/users/{user_id}", [App\Http\Controllers\Admin\RoleController::class, "deleteUser"]);
+        Route::apiResource("roles", App\Http\Controllers\Admin\RoleController::class);
+        
+        Route::post("permissions-list", [App\Http\Controllers\Admin\PermissionController::class, "index"]);
+        Route::apiResource("permissions", App\Http\Controllers\Admin\PermissionController::class);
+    });
+    
+    // Rutas de productos - accesibles para todos los usuarios autenticados
+    // pero el controlador filtrará según permisos
+    Route::middleware(['permission:manage-products|manage-own-products'])->group(function () {
+        Route::get("products/config", [ProductController::class, "config"]);
+        Route::post("products/index", [ProductController::class, "index"]);
+        Route::post("products", [ProductController::class, "store"]);
+        Route::get("products/{id}", [ProductController::class, "show"]);
+        Route::post("products/{id}", [ProductController::class, "update"]);
+        Route::delete("products/{id}", [ProductController::class, "destroy"]);
+        
+        // Rutas para gestionar imágenes de productos
+        Route::post("products/imagens", [ProductController::class, "imagens"]);
+        Route::delete("products/imagens/{id}", [ProductController::class, "delete_imagen"]);
+        
+        // Ruta de configuración de KPI (solo configuración básica)
+        Route::get("kpi/config", [KpiSaleReportController::class, "config"]);
+    });
+    
+    // Rutas accesibles solo para administradores
+    Route::middleware(['permission:manage-products'])->group(function () {
+        Route::get("categories/config", [CategorieController::class, "config"]);
+        Route::resource("categories", CategorieController::class);
+        Route::post("categories/{id}", [CategorieController::class, "update"]);
 
-    Route::post("properties",[AttributeProductController::class,"store_propertie"]);
-    Route::delete("properties/{id}",[AttributeProductController::class,"destroy_propertie"]);
-    Route::resource("attributes",AttributeProductController::class);
+        Route::post("properties", [AttributeProductController::class, "store_propertie"]);
+        Route::delete("properties/{id}", [AttributeProductController::class, "destroy_propertie"]);
+        Route::resource("attributes", AttributeProductController::class);
 
-    Route::resource("sliders",SliderController::class);
-    Route::post("sliders/{id}",[SliderController::class,"update"]);
+        Route::resource("sliders", SliderController::class);
+        Route::post("sliders/{id}", [SliderController::class, "update"]);
 
-    Route::get("products/config",[ProductController::class,"config"]);
-    Route::post("products/imagens",[ProductController::class,"imagens"]);
-    Route::delete("products/imagens/{id}",[ProductController::class,"delete_imagen"]);
-    Route::post("products/index",[ProductController::class,"index"]);
-    Route::resource("products",ProductController::class);
-    Route::post("products/{id}",[ProductController::class,"update"]);
+        Route::resource("brands", BrandController::class);
 
-    Route::resource("brands",BrandController::class);
+        Route::get("variations/config", [ProductVariationsController::class, "config"]);
+        Route::resource("variations", ProductVariationsController::class);
+        Route::resource("anidado_variations", ProductVariationsAnidadoController::class);
 
-    Route::get("variations/config",[ProductVariationsController::class,"config"]);
-    Route::resource("variations",ProductVariationsController::class);
-    Route::resource("anidado_variations",ProductVariationsAnidadoController::class);
+        Route::resource("specifications", ProductSpecificationsController::class);
 
-    Route::resource("specifications",ProductSpecificationsController::class);
+        Route::get("cupones/config", [CuponeController::class, "config"]);
+        Route::resource("cupones", CuponeController::class);
 
-    Route::get("cupones/config",[CuponeController::class,"config"]);
-    Route::resource("cupones",CuponeController::class);
+        Route::resource("discounts", DiscountController::class);
 
-    Route::resource("discounts",DiscountController::class);
+        Route::post("sales/list", [SalesController::class, "list"]);
 
-    Route::post("sales/list",[SalesController::class,"list"]);
-
-    Route::group([
-        "prefix" => "kpi",
-    ],function ($router) {
-        Route::get("config",[KpiSaleReportController::class,"config"]);
-        Route::post("report_sales_country_for_year",[KpiSaleReportController::class,"report_sales_country_for_year"]);
-        Route::post("report_sales_week_categorias",[KpiSaleReportController::class,"report_sales_week_categorias"]);
-        Route::post("report_sales_week_discounts",[KpiSaleReportController::class,"report_sales_week_discounts"]);
-        Route::post("report_sales_month_selected",[KpiSaleReportController::class,"report_sales_month_selected"]);
-        Route::post("report_sales_for_month_year_selected",[KpiSaleReportController::class,"report_sales_for_month_year_selected"]);
-        Route::post("report_discount_cupone_year",[KpiSaleReportController::class,"report_discount_cupone_year"]);
-        Route::post("report_sales_for_categories",[KpiSaleReportController::class,"report_sales_for_categories"]);
-        Route::post("report_sales_for_categories_details",[KpiSaleReportController::class,"report_sales_for_categories_details"]);
-        Route::post("report_sales_for_brand",[KpiSaleReportController::class,"report_sales_for_brand"]);
+        // Rutas específicas de KPI para reportes avanzados
+        Route::group([
+            "prefix" => "kpi",
+        ],function ($router) {
+            Route::post("report_sales_country_for_year", [KpiSaleReportController::class, "report_sales_country_for_year"]);
+            Route::post("report_sales_week_categorias", [KpiSaleReportController::class, "report_sales_week_categorias"]);
+            Route::post("report_sales_week_discounts", [KpiSaleReportController::class, "report_sales_week_discounts"]);
+            Route::post("report_sales_month_selected", [KpiSaleReportController::class, "report_sales_month_selected"]);
+            Route::post("report_sales_for_month_year_selected", [KpiSaleReportController::class, "report_sales_for_month_year_selected"]);
+            Route::post("report_discount_cupone_year", [KpiSaleReportController::class, "report_discount_cupone_year"]);
+            Route::post("report_sales_for_categories", [KpiSaleReportController::class, "report_sales_for_categories"]);
+            Route::post("report_sales_for_categories_details", [KpiSaleReportController::class, "report_sales_for_categories_details"]);
+            Route::post("report_sales_for_brand", [KpiSaleReportController::class, "report_sales_for_brand"]);
+        });
     });
 });
 
@@ -141,3 +173,5 @@ Route::group([
     });
 
 });
+
+Route::post('/users', [UserController::class, 'store']);
