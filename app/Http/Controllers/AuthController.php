@@ -11,6 +11,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Google_Client;
 
 class AuthController extends Controller
 {
@@ -21,8 +23,15 @@ class AuthController extends Controller
      */
     public function __construct()
     {
-        $this->middleware('auth:api', ['except' => ['login', 'register','login_ecommerce','verified_auth',
-        'verified_email','verified_code','new_password'
+        $this->middleware('auth:api', ['except' => [
+            'login',
+            'register',
+            'login_ecommerce',
+            'googleLogin',
+            'verified_auth',
+            'verified_email',
+            'verified_code',
+            'new_password',
         ]]);
     }
  
@@ -163,6 +172,32 @@ class AuthController extends Controller
         if(!auth('api')->user()->email_verified_at){
             return response()->json(['error' => 'Unauthorized'], 401);
         }
+
+        return $this->respondWithToken($token);
+    }
+
+    public function googleLogin(Request $request)
+    {
+        $client = new Google_Client(['client_id' => config('services.google.client_id')]);
+        $payload = $client->verifyIdToken($request->credential);
+
+        if (!$payload) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $user = User::firstOrCreate(
+            ['email' => $payload['email']],
+            [
+                'name' => $payload['given_name'] ?? $payload['name'] ?? '',
+                'surname' => $payload['family_name'] ?? '',
+                'avatar' => $payload['picture'] ?? null,
+                'type_user' => 2,
+                'password' => bcrypt(Str::random(16)),
+                'email_verified_at' => now(),
+            ]
+        );
+
+        $token = auth('api')->login($user);
 
         return $this->respondWithToken($token);
     }
