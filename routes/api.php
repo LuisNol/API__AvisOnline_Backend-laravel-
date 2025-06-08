@@ -43,12 +43,13 @@ Route::group([
     Route::post('/register', [AuthController::class, 'register'])->name('register');
     Route::post('/login', [AuthController::class, 'login'])->name('login');
     Route::post('/login_ecommerce', [AuthController::class, 'login_ecommerce'])->name('login_ecommerce');
+    Route::post('/google_login', [AuthController::class, 'googleLogin'])->name('google_login');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::post('/refresh', [AuthController::class, 'refresh'])->name('refresh');
     Route::post('/me', [AuthController::class, 'me'])->name('me');
     Route::post('/permissions', [AuthController::class, 'permissions'])->name('permissions');
     Route::post('/verified_auth', [AuthController::class, 'verified_auth'])->name('verified_auth');
-    // 
+    Route::post('/login-json', [\App\Http\Controllers\AuthController::class, 'loginJson'])->name('login_json');
     Route::post('/verified_email', [AuthController::class, 'verified_email'])->name('verified_email');
     Route::post('/verified_code', [AuthController::class, 'verified_code'])->name('verified_code');
     Route::post('/new_password', [AuthController::class, 'new_password'])->name('new_password');
@@ -88,15 +89,20 @@ Route::group([
         Route::post("products/imagens", [ProductController::class, "imagens"]);
         Route::delete("products/imagens/{id}", [ProductController::class, "delete_imagen"]);
         
+        // Rutas de categorías - también accesibles para usuarios con permisos de productos
+        Route::get("categories/config", [CategorieController::class, "config"]);
+        Route::get("categories", [CategorieController::class, "index"]);
+        Route::post("categories", [CategorieController::class, "store"]);
+        Route::get("categories/{id}", [CategorieController::class, "show"]);
+        Route::post("categories/{id}", [CategorieController::class, "update"]);
+        Route::delete("categories/{id}", [CategorieController::class, "destroy"]);
+        
         // Ruta de configuración de KPI (solo configuración básica)
         Route::get("kpi/config", [KpiSaleReportController::class, "config"]);
     });
     
     // Rutas accesibles solo para administradores
     Route::middleware(['permission:manage-products'])->group(function () {
-        Route::get("categories/config", [CategorieController::class, "config"]);
-        Route::resource("categories", CategorieController::class);
-        Route::post("categories/{id}", [CategorieController::class, "update"]);
 
         Route::post("properties", [AttributeProductController::class, "store_propertie"]);
         Route::delete("properties/{id}", [AttributeProductController::class, "destroy_propertie"]);
