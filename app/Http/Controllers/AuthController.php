@@ -394,57 +394,10 @@ class AuthController extends Controller
     }
 
     /**
-     * Get a JWT via given credentials.
-     *
-     * @return \Illuminate\Http\JsonResponse
+     * Verify email with unique code
      */
-    public function login()
+    public function verified_auth(Request $request)
     {
-        $credentials = request(['email', 'password']);
- 
-        if (! $token = auth('api')->attempt([
-            "email" => request()->email,
-            "password" => request()->password,
-            "type_user" => 1])) {
-            
-            // Intentar también con "ADMIN" como tipo de usuario
-            if (! $token = auth('api')->attempt([
-                "email" => request()->email,
-                "password" => request()->password,
-                "type_user" => "ADMIN"])) {
-                return response()->json(['error' => 'Unauthorized'], 401);
-            }
-        }
- 
-        return $this->respondWithToken($token);
-    }
-
-    public function login_ecommerce()
-    {
-        $credentials = request(['email', 'password']);
- 
-        if (! $token = auth('api')->attempt([
-            "email" => request()->email,
-            "password" => request()->password,
-            "type_user" => 2])) {
-            
-            // Intentar también con "CLIENT" como tipo de usuario
-            if (! $token = auth('api')->attempt([
-                "email" => request()->email,
-                "password" => request()->password,
-                "type_user" => "CLIENT"])) {
-                return response()->json(['error' => 'Unauthorized'], 401);
-            }
-        }
-
-        if(!auth('api')->user()->email_verified_at){
-            return response()->json(['error' => 'Unauthorized'], 401);
-        }
-
-        return $this->respondWithToken($token);
-    }
-    
-    public function verified_auth(Request $request){
         $user = User::where("uniqd", $request->code_user)->first();
 
         if($user){
