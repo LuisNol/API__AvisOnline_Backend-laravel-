@@ -394,11 +394,12 @@ class AuthController extends Controller
     }
 
     /**
-     * Verify email with unique code
+     * Get a JWT via given credentials.
+     *
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function verified_auth(Request $request)
+    public function login()
     {
-
         $credentials = request(['email', 'password']);
  
         if (! $token = auth('api')->attempt([
@@ -442,35 +443,8 @@ class AuthController extends Controller
 
         return $this->respondWithToken($token);
     }
-
-    public function googleLogin(Request $request)
-    {
-        $client = new Google_Client(['client_id' => config('services.google.client_id')]);
-        $payload = $client->verifyIdToken($request->credential);
-
-        if (!$payload) {
-            return response()->json(['error' => 'Unauthorized'], 401);
-        }
-
-        $user = User::firstOrCreate(
-            ['email' => $payload['email']],
-            [
-                'name' => $payload['given_name'] ?? $payload['name'] ?? '',
-                'surname' => $payload['family_name'] ?? '',
-                'avatar' => $payload['picture'] ?? null,
-                'type_user' => 2,
-                'password' => bcrypt(Str::random(16)),
-                'email_verified_at' => now(),
-            ]
-        );
-
-        $token = auth('api')->login($user);
-
-        return $this->respondWithToken($token);
-    }
     
     public function verified_auth(Request $request){
-
         $user = User::where("uniqd", $request->code_user)->first();
 
         if($user){
