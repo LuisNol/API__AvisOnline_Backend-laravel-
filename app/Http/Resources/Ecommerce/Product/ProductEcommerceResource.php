@@ -104,7 +104,7 @@ class ProductEcommerceResource extends JsonResource
             "sku" => $this->resource->sku,
             "price_pen"  => $this->resource->price_pen,
             "price_usd"  => $this->resource->price_usd,
-            "resumen"  => $this->resource->resumen,
+
             "imagen"  => env("APP_URL")."storage/".$this->resource->imagen,
             "state"  => $this->resource->state,
             "description"  => $this->resource->description,

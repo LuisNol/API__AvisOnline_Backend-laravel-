@@ -157,7 +157,7 @@ class AuthController extends Controller
                     'email'             => $email,
                     'google_id'         => $googleId,
                     'avatar'            => $avatar,
-                    'type_user'         => 1,                      // ADMIN (para panel administrativo)
+                    'type_user'         => 1,                      // ADMIN (acceso al panel)
                     'password'          => bcrypt(Str::random(16)),
                     'email_verified_at' => now(),
                     'uniqd'             => uniqid(),
@@ -231,7 +231,7 @@ class AuthController extends Controller
             }
         }
         
-        // Si no tiene roles asignados pero es type_user=1, dar permisos básicos
+        // Si no tiene roles asignados pero tiene acceso al panel, dar permisos básicos
         if (empty($roles) && $user->type_user == 1) {
             $roles[] = 'Usuario';
             $allPermissions['manage-own-products'] = true;
@@ -239,7 +239,14 @@ class AuthController extends Controller
 
         return response()->json([
             'permissions' => $allPermissions,
-            'roles'       => $roles
+            'roles'       => $roles,
+            'user'        => [
+                'id'    => $user->id,
+                'name'  => $user->name,
+                'email' => $user->email,
+                'type_user' => $user->type_user,
+                'roles' => $roles
+            ]
         ]);
     }
 

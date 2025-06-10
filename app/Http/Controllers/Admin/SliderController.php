@@ -43,12 +43,41 @@ class SliderController extends Controller
      */
     public function store(Request $request)
     {
+        // Validaciones para AvisOnline
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'subtitle' => 'required|string|max:255',
+            'label' => 'nullable|string|max:50', // Labels cortos para AvisOnline
+            'link' => 'nullable|string|max:500', // Removemos validación URL para permitir rutas internas
+            'color' => 'nullable|string|max:7', // Formato hex #ffffff
+            'type_slider' => 'required|integer|in:1,2,3',
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+        ]);
+        
+        // Manejo de imagen
+        $imagen = null;
         if($request->hasFile("image")){
             $path = Storage::putFile("sliders",$request->file("image"));
-            $request->request->add(["imagen" =>  $path]);
+            $imagen = $path;
         }
-        $slider = Slider::create($request->all());
-        return response()->json(["message" => 200]);
+        
+        // Crear slider para AvisOnline
+        $slider = Slider::create([
+            'title' => $request->title,
+            'subtitle' => $request->subtitle,
+            'label' => $request->label,
+            'link' => $request->link,
+            'color' => $request->color ?? '#007bff', // Azul corporativo por defecto
+            'type_slider' => $request->type_slider,
+            'imagen' => $imagen,
+            'state' => 1, // Activo por defecto
+        ]);
+        
+        return response()->json([
+            "message" => 200,
+            "message_text" => "Slider creado correctamente",
+            "slider" => $slider
+        ]);
     }
 
     /**
@@ -79,15 +108,45 @@ class SliderController extends Controller
     public function update(Request $request, string $id)
     {
         $slider = Slider::findOrFail($id);
+        
+        // Validaciones para AvisOnline (imagen opcional en update)
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'subtitle' => 'required|string|max:255',
+            'label' => 'nullable|string|max:50',
+            'link' => 'nullable|string|max:500',
+            'color' => 'nullable|string|max:7',
+            'type_slider' => 'required|integer|in:1,2,3',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+        ]);
+        
+        // Manejo de imagen
+        $imagen = $slider->imagen; // Mantener imagen actual por defecto
         if($request->hasFile("image")){
             if($slider->imagen){
                 Storage::delete($slider->imagen);
             }
             $path = Storage::putFile("sliders",$request->file("image"));
-            $request->request->add(["imagen" =>  $path]);
+            $imagen = $path;
         }
-        $slider->update($request->all());
-        return response()->json(["message" => 200]);
+        
+        // Actualizar slider para AvisOnline
+        $slider->update([
+            'title' => $request->title,
+            'subtitle' => $request->subtitle,
+            'label' => $request->label,
+            'link' => $request->link,
+            'color' => $request->color ?? $slider->color,
+            'type_slider' => $request->type_slider,
+            'imagen' => $imagen,
+            'state' => $request->state ?? $slider->state,
+        ]);
+        
+        return response()->json([
+            "message" => 200,
+            "message_text" => "Slider actualizado correctamente",
+            "slider" => $slider
+        ]);
     }
 
     /**
@@ -96,7 +155,15 @@ class SliderController extends Controller
     public function destroy(string $id)
     {
         $slider = Slider::findOrFail($id);
-        $slider->delete();
+        
+        // Eliminar imagen si existe
+        if($slider->imagen){
+            Storage::delete($slider->imagen);
+        }
+        
+        // Eliminación física permanente
+        $slider->forceDelete();
+        
         return response()->json(["message" => 200]);
     }
 }
