@@ -36,13 +36,12 @@ class UserController extends Controller
                 'password' => 'required|string|min:8',
             ]);
 
-            // Crea el usuario con type_user = "admin" para acceso al panel
-            // pero con rol "usuario" para permisos limitados (AvisOnline)
+            // Crea el usuario como tipo CLIENT por defecto
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
-                'type_user' => 'admin' // Permite acceso al panel de administración
+                'type_user' => 1 // CLIENTE por defecto
             ]);
 
             // Asigna el rol de usuario por defecto (ajusta el nombre si es necesario)

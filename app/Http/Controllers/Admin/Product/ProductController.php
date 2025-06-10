@@ -26,10 +26,10 @@ class ProductController extends Controller
         $user = auth('api')->user();
         $query = Product::filterAdvanceProduct($search, $categorie_id);
         
-        // Si el usuario tiene rol Admin o permiso manage-products, puede ver todos los productos
-        if (!$user->hasRole('Admin') && !$user->hasPermission('manage-products')) {
+        // Si el usuario tiene rol Admin o permiso manage-all-announcements, puede ver todos los productos
+        if (!$user->hasRole('Admin') && !$user->hasPermission('manage-all-announcements')) {
             // Si solo tiene permiso para gestionar sus propios productos
-            if ($user->hasPermission('manage-own-products')) {
+            if ($user->hasPermission('manage-own-announcements')) {
                 $query = $query->where('user_id', $user->id);
             }
         }
@@ -86,8 +86,8 @@ class ProductController extends Controller
         
         // Verificar permisos basado en el encabezado y los permisos del usuario
         $isAdmin = $user->hasRole('Admin');
-        $canManageProducts = $user->hasPermission('manage-products');
-        $canManageOwnProducts = $user->hasPermission('manage-own-products');
+        $canManageProducts = $user->hasPermission('manage-all-announcements');
+        $canManageOwnProducts = $user->hasPermission('manage-own-announcements');
         
         \Log::info('Verificación de permisos', [
             'user_id' => $user->id,
@@ -218,7 +218,7 @@ class ProductController extends Controller
             \Log::info('Intentando crear producto', [
                 'title' => $request->title,
                 'user_id' => $user->id,
-                'permission_used' => $headerPermission ?: ($canManageProducts ? 'manage-products' : 'manage-own-products')
+                'permission_used' => $headerPermission ?: ($canManageProducts ? 'manage-all-announcements' : 'manage-own-announcements')
             ]);
             
             $product = Product::create($request->all());
@@ -252,8 +252,8 @@ class ProductController extends Controller
         
         // Verificar si el usuario tiene permiso para modificar este producto
         $user = auth('api')->user();
-        if (!$user->hasRole('Admin') && !$user->hasPermission('manage-products')) {
-            if ($user->hasPermission('manage-own-products') && $product->user_id != $user->id) {
+        if (!$user->hasRole('Admin') && !$user->hasPermission('manage-all-announcements')) {
+            if ($user->hasPermission('manage-own-announcements') && $product->user_id != $user->id) {
                 return response()->json(["message" => 403, "message_text" => "No tienes permiso para modificar este producto"]);
             }
         }
@@ -283,8 +283,8 @@ class ProductController extends Controller
         
         // Verificar si el usuario tiene permiso para ver este producto
         $user = auth('api')->user();
-        if (!$user->hasRole('Admin') && !$user->hasPermission('manage-products')) {
-            if ($user->hasPermission('manage-own-products') && $product->user_id != $user->id) {
+        if (!$user->hasRole('Admin') && !$user->hasPermission('manage-all-announcements')) {
+            if ($user->hasPermission('manage-own-announcements') && $product->user_id != $user->id) {
                 return response()->json(["message" => 403, "message_text" => "No tienes permiso para ver este producto"]);
             }
         }
@@ -321,8 +321,8 @@ class ProductController extends Controller
         
         // Verificar si el usuario tiene permiso para editar este producto
         $user = auth('api')->user();
-        if (!$user->hasRole('Admin') && !$user->hasPermission('manage-products')) {
-            if ($user->hasPermission('manage-own-products') && $product->user_id != $user->id) {
+        if (!$user->hasRole('Admin') && !$user->hasPermission('manage-all-announcements')) {
+            if ($user->hasPermission('manage-own-announcements') && $product->user_id != $user->id) {
                 \Log::warning('❌ Usuario sin permisos para editar producto', [
                     'user_id' => $user->id,
                     'product_owner' => $product->user_id
@@ -373,8 +373,8 @@ class ProductController extends Controller
         
         // Verificar si el usuario tiene permiso para eliminar este producto
         $user = auth('api')->user();
-        if (!$user->hasRole('Admin') && !$user->hasPermission('manage-products')) {
-            if ($user->hasPermission('manage-own-products') && $product->user_id != $user->id) {
+        if (!$user->hasRole('Admin') && !$user->hasPermission('manage-all-announcements')) {
+            if ($user->hasPermission('manage-own-announcements') && $product->user_id != $user->id) {
                 return response()->json(["message" => 403, "message_text" => "No tienes permiso para eliminar este producto"]);
             }
         }
@@ -407,8 +407,8 @@ class ProductController extends Controller
         
         // Verificar si el usuario tiene permiso para eliminar esta imagen
         $user = auth('api')->user();
-        if (!$user->hasRole('Admin') && !$user->hasPermission('manage-products')) {
-            if ($user->hasPermission('manage-own-products') && $product->user_id != $user->id) {
+        if (!$user->hasRole('Admin') && !$user->hasPermission('manage-all-announcements')) {
+            if ($user->hasPermission('manage-own-announcements') && $product->user_id != $user->id) {
                 return response()->json(["message" => 403, "message_text" => "No tienes permiso para eliminar esta imagen"]);
             }
         }
@@ -422,3 +422,4 @@ class ProductController extends Controller
         ]);
     }
 }
+

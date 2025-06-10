@@ -18,7 +18,7 @@ class CategorieController extends Controller
     {
         $search = $request->search;
 
-        $categories = Categorie::where("name","like","%".$search."%")->orderBy("id","desc")->paginate(25);
+        $categories = Categorie::where("name","like","%".$search."%")->orderBy("position","asc")->paginate(25);
 
         return response()->json([
             "total" => $categories->total(),
@@ -27,14 +27,11 @@ class CategorieController extends Controller
     }
 
     public function config(){
-
-        $categories_first = Categorie::where("categorie_second_id",NULL)->where("categorie_third_id",NULL)->get();
-        
-        $categories_seconds = Categorie::where("categorie_second_id","<>",NULL)->where("categorie_third_id",NULL)->get();
+        // Solo categorías de primer nivel para anuncios clasificados
+        $categories = Categorie::where("state", 1)->orderBy("position", "asc")->get();
 
         return response()->json([
-            "categories_first" => $categories_first,
-            "categories_seconds" => $categories_seconds,
+            "categories" => $categories,
         ]);
     }
     /**
@@ -44,14 +41,44 @@ class CategorieController extends Controller
     {
         $is_exists = Categorie::where("name",$request->name)->first();
         if($is_exists){
-            return response()->json(["message" => 403]);
+            return response()->json(["message" => 403, "message_text" => "Ya existe una categoría con este nombre"]);
         }
+        
+        // Manejo de imagen
+        $imagen = null;
         if($request->hasFile("image")){
             $path = Storage::putFile("categories",$request->file("image"));
-            $request->request->add(["imagen" =>  $path]);
+            $imagen = $path;
         }
-        $categorie = Categorie::create($request->all());
-        return response()->json(["message" => 200]);
+        
+        // Manejar posiciones automáticamente
+        $requested_position = $request->position ?? null;
+        
+        if ($requested_position) {
+            // Si especifica una posición, mover las demás hacia abajo
+            Categorie::where('position', '>=', $requested_position)
+                    ->increment('position');
+            $final_position = $requested_position;
+        } else {
+            // Si no especifica, usar la siguiente disponible
+            $max_position = Categorie::max('position') ?? 0;
+            $final_position = $max_position + 1;
+        }
+        
+        // Datos específicos para crear categoría
+        $categorie = Categorie::create([
+            'name' => $request->name,
+            'icon' => $request->icon ?? '',
+            'imagen' => $imagen,
+            'position' => $final_position,
+            'state' => 1,
+        ]);
+        
+        return response()->json([
+            "message" => 200,
+            "categorie" => CategorieResource::make($categorie),
+            "message_text" => "Categoría creada en posición " . $final_position
+        ]);
     }
 
     /**
@@ -71,18 +98,54 @@ class CategorieController extends Controller
     {
         $is_exists = Categorie::where("id",'<>',$id)->where("name",$request->name)->first();
         if($is_exists){
-            return response()->json(["message" => 403]);
+            return response()->json(["message" => 403, "message_text" => "Ya existe una categoría con este nombre"]);
         }
+        
         $categorie = Categorie::findOrFail($id);
+        $old_position = $categorie->position;
+        $new_position = $request->position ?? $categorie->position;
+        
+        // Manejo de imagen
+        $imagen = $categorie->imagen; // Mantener imagen actual por defecto
         if($request->hasFile("image")){
             if($categorie->imagen){
                 Storage::delete($categorie->imagen);
             }
             $path = Storage::putFile("categories",$request->file("image"));
-            $request->request->add(["imagen" =>  $path]);
+            $imagen = $path;
         }
-        $categorie->update($request->all());
-        return response()->json(["message" => 200]);
+        
+        // Si la posición cambió, reordenar las demás categorías
+        if ($old_position != $new_position) {
+            if ($new_position < $old_position) {
+                // Moviendo hacia arriba: incrementar posiciones entre new_position y old_position
+                Categorie::where('id', '!=', $id)
+                        ->where('position', '>=', $new_position)
+                        ->where('position', '<', $old_position)
+                        ->increment('position');
+            } else {
+                // Moviendo hacia abajo: decrementar posiciones entre old_position y new_position
+                Categorie::where('id', '!=', $id)
+                        ->where('position', '>', $old_position)
+                        ->where('position', '<=', $new_position)
+                        ->decrement('position');
+            }
+        }
+        
+        // Actualizar datos específicos
+        $categorie->update([
+            'name' => $request->name,
+            'icon' => $request->icon ?? $categorie->icon,
+            'imagen' => $imagen,
+            'position' => $new_position,
+            'state' => $request->state ?? $categorie->state,
+        ]);
+        
+        return response()->json([
+            "message" => 200,
+            "categorie" => CategorieResource::make($categorie),
+            "message_text" => "Categoría actualizada. Posición: " . $new_position
+        ]);
     }
 
     /**
@@ -92,14 +155,22 @@ class CategorieController extends Controller
     {
         $categorie = Categorie::findOrFail($id);
         
-        if($categorie->product_categorie_firsts->count() > 0 ||
-            $categorie->product_categorie_secodns->count() > 0 ||
-            $categorie->product_categorie_thirds->count() > 0){
-            return response()->json(["message" => 403,"message_text" => "LA CATEGORIA YA ESTA RELACIONADO CON ALGUNOS O UN PRODUCTO"]);
+        // Verificar si tiene productos asociados
+        if($categorie->products->count() > 0){
+            return response()->json(["message" => 403,"message_text" => "No se puede eliminar la categoría porque tiene anuncios asociados"]);
         }
 
-        $categorie->delete();
-        // validar que la categoria no este en ningun producto
+        // Eliminar imagen si existe
+        if($categorie->imagen){
+            Storage::delete($categorie->imagen);
+        }
+        
+        // Reordenar posiciones de las categorías restantes
+        Categorie::where('position', '>', $categorie->position)->decrement('position');
+        
+        // Eliminación física permanente
+        $categorie->forceDelete();
+        
         return response()->json(["message" => 200]);
     }
 }

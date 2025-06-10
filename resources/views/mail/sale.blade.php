@@ -564,7 +564,7 @@
 																															<td class="text-16 lh-26 pb-15"
 																																style="font-size:16px; color:#6e6e6e; font-family:'PT Sans', Arial, sans-serif; text-align:left; min-width:auto !important; line-height: 26px; padding-bottom: 15px;">
 																																<multiline>
-																																	{{ $sale_detail->product->resumen }}
+																																	{{ Str::limit($sale_detail->product->description, 100) }}
 																																</multiline>
 																															</td>
 																														</tr>

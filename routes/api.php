@@ -48,6 +48,7 @@ Route::group([
     Route::post('/refresh', [AuthController::class, 'refresh'])->name('refresh');
     Route::post('/me', [AuthController::class, 'me'])->name('me');
     Route::post('/permissions', [AuthController::class, 'permissions'])->name('permissions');
+    Route::get('/permissions', [AuthController::class, 'permissions']);
     Route::post('/verified_auth', [AuthController::class, 'verified_auth'])->name('verified_auth');
     Route::post('/login-json', [\App\Http\Controllers\AuthController::class, 'loginJson'])->name('login_json');
     Route::post('/verified_email', [AuthController::class, 'verified_email'])->name('verified_email');
@@ -77,7 +78,7 @@ Route::group([
     
     // Rutas de productos - accesibles para todos los usuarios autenticados
     // pero el controlador filtrará según permisos
-    Route::middleware(['permission:manage-products|manage-own-products'])->group(function () {
+    Route::middleware(['permission:manage-all-announcements|manage-own-announcements'])->group(function () {
         Route::get("products/config", [ProductController::class, "config"]);
         Route::post("products/index", [ProductController::class, "index"]);
         Route::post("products", [ProductController::class, "store"]);
@@ -102,7 +103,7 @@ Route::group([
     });
     
     // Rutas accesibles solo para administradores
-    Route::middleware(['permission:manage-products'])->group(function () {
+    Route::middleware(['permission:manage-all-announcements'])->group(function () {
 
         Route::post("properties", [AttributeProductController::class, "store_propertie"]);
         Route::delete("properties/{id}", [AttributeProductController::class, "destroy_propertie"]);

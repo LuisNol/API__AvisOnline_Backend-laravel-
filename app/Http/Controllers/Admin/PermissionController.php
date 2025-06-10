@@ -60,7 +60,7 @@ class PermissionController extends Controller
         $permission = Permission::findOrFail($id);
         
         // Verificar que no sea un permiso crítico del sistema
-        $criticalPermissions = ['manage-users', 'manage-products', 'manage-own-products'];
+        $criticalPermissions = ['manage-users', 'manage-all-announcements', 'manage-own-announcements'];
         if(in_array($permission->name, $criticalPermissions)){
             return response()->json(['error' => 'No se puede eliminar un permiso crítico del sistema'], 400);
         }
