@@ -398,6 +398,79 @@ class AuthController extends Controller
      */
     public function verified_auth(Request $request)
     {
+
+        $credentials = request(['email', 'password']);
+ 
+        if (! $token = auth('api')->attempt([
+            "email" => request()->email,
+            "password" => request()->password,
+            "type_user" => 1])) {
+            
+            // Intentar también con "ADMIN" como tipo de usuario
+            if (! $token = auth('api')->attempt([
+                "email" => request()->email,
+                "password" => request()->password,
+                "type_user" => "ADMIN"])) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+        }
+ 
+        return $this->respondWithToken($token);
+    }
+
+    public function login_ecommerce()
+    {
+        $credentials = request(['email', 'password']);
+ 
+        if (! $token = auth('api')->attempt([
+            "email" => request()->email,
+            "password" => request()->password,
+            "type_user" => 2])) {
+            
+            // Intentar también con "CLIENT" como tipo de usuario
+            if (! $token = auth('api')->attempt([
+                "email" => request()->email,
+                "password" => request()->password,
+                "type_user" => "CLIENT"])) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+        }
+
+        if(!auth('api')->user()->email_verified_at){
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        return $this->respondWithToken($token);
+    }
+
+    public function googleLogin(Request $request)
+    {
+        $client = new Google_Client(['client_id' => config('services.google.client_id')]);
+        $payload = $client->verifyIdToken($request->credential);
+
+        if (!$payload) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $user = User::firstOrCreate(
+            ['email' => $payload['email']],
+            [
+                'name' => $payload['given_name'] ?? $payload['name'] ?? '',
+                'surname' => $payload['family_name'] ?? '',
+                'avatar' => $payload['picture'] ?? null,
+                'type_user' => 2,
+                'password' => bcrypt(Str::random(16)),
+                'email_verified_at' => now(),
+            ]
+        );
+
+        $token = auth('api')->login($user);
+
+        return $this->respondWithToken($token);
+    }
+    
+    public function verified_auth(Request $request){
+
         $user = User::where("uniqd", $request->code_user)->first();
 
         if($user){
