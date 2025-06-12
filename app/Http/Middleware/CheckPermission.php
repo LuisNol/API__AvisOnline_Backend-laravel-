@@ -15,83 +15,87 @@ class CheckPermission
      * @param  \Illuminate\Http\Request  $request
      * @param  \Closure  $next
      * @param  string  $permission
-     * @return mixed
+     * @return \Symfony\Component\HttpFoundation\Response
      */
     public function handle(Request $request, Closure $next, string $permission): Response
     {
-        \Log::info('CheckPermission middleware: verificando acceso a ruta', [
+        $userId = auth('api')->check() ? auth('api')->id() : null;
+
+        Log::info('CheckPermission middleware: verificando acceso a ruta', [
             'path' => $request->path(),
             'required_permission' => $permission,
-            'user_id' => auth('api')->check() ? auth('api')->id() : null,
+            'user_id' => $userId,
             'header_permission' => $request->header('X-User-Permission')
         ]);
-        
-        if (!auth('api')->check()) {
+
+        if (!$userId) {
             return response()->json(['error' => 'Unauthenticated.'], 401);
         }
 
         $user = auth('api')->user();
         $headerPermission = $request->header('X-User-Permission');
-        
-        \Log::info('Verificando permisos para usuario', [
+
+        // Obtener todos los permisos del usuario
+        $userPermissions = $user->roles
+            ->flatMap(fn($role) => $role->permissions->pluck('name'))
+            ->unique()
+            ->values()
+            ->toArray();
+
+        Log::info('Verificando permisos para usuario', [
             'user_id' => $user->id,
             'user_name' => $user->name,
             'header_permission' => $headerPermission,
             'is_admin' => $user->hasRole('Admin'),
-            'user_permissions' => $user->roles()->with('permissions')->get()->pluck('permissions.*.name')->flatten()->unique()->values()->toArray()
+            'user_permissions' => $userPermissions
         ]);
-        
-        // Paso 1: Si el usuario es Admin, siempre tiene acceso
+
+        // Si el usuario es Admin, acceso completo
         if ($user->hasRole('Admin')) {
-            \Log::info('Usuario es Admin, concediendo acceso completo');
+            Log::info('Usuario es Admin, concediendo acceso completo');
             $request->attributes->set('effective_permission', 'manage-products');
             return $next($request);
         }
-        
-        // Paso 2: Si se requieren varios permisos (formato: perm1|perm2)
-        $permissions = [];
-        if (strpos($permission, '|') !== false) {
-            $permissions = explode('|', $permission);
-            \Log::info('Permisos múltiples requeridos', ['permissions' => $permissions]);
-        } else {
-            $permissions = [$permission];
-            \Log::info('Permiso único requerido', ['permission' => $permission]);
-        }
-        
-        // Paso 3: Priorizar el permiso del encabezado si está en la lista de permisos requeridos
-        if ($headerPermission && in_array($headerPermission, $permissions) && $user->hasPermission($headerPermission)) {
-            \Log::info('Permiso concedido por encabezado', ['header_permission' => $headerPermission]);
+
+        // Manejar múltiples permisos (separados por "|")
+        $permissions = strpos($permission, '|') !== false
+            ? array_map('trim', explode('|', $permission))
+            : [trim($permission)];
+
+        Log::info('Permisos requeridos', ['permissions' => $permissions]);
+
+        // Verificar si el encabezado coincide con alguno de los permisos requeridos
+        if ($headerPermission && in_array($headerPermission, $permissions) && in_array($headerPermission, $userPermissions)) {
+            Log::info('Permiso concedido por encabezado', ['header_permission' => $headerPermission]);
             $request->attributes->set('effective_permission', $headerPermission);
             return $next($request);
         }
-        
-        // Paso 4: Verificar cada permiso individual
+
+        // Verificar cada permiso individual
         foreach ($permissions as $singlePermission) {
-            $singlePermission = trim($singlePermission);
-            
-            \Log::info('Verificando permiso individual', [
+            Log::info('Verificando permiso individual', [
                 'permission' => $singlePermission,
-                'has_permission' => $user->hasPermission($singlePermission)
+                'has_permission' => in_array($singlePermission, $userPermissions)
             ]);
-            
-            if ($user->hasPermission($singlePermission)) {
-                \Log::info('Permiso concedido', ['permission' => $singlePermission]);
+
+            if (in_array($singlePermission, $userPermissions)) {
+                Log::info('Permiso concedido', ['permission' => $singlePermission]);
                 $request->attributes->set('effective_permission', $singlePermission);
                 return $next($request);
             }
         }
-        
-        // Si llegamos aquí, el usuario no tiene ninguno de los permisos requeridos
-        \Log::warning('Acceso denegado: sin permisos suficientes', [
+
+        // Acceso denegado
+        Log::warning('Acceso denegado: sin permisos suficientes', [
             'user_id' => $user->id,
             'required_permissions' => $permissions,
-            'user_permissions' => $user->roles()->with('permissions')->get()->pluck('permissions.*.name')->flatten()->unique()->values()
+            'user_permissions' => $userPermissions
         ]);
-        
+
         return response()->json([
             'error' => 'Forbidden. You do not have the required permissions.',
             'required_permissions' => $permissions,
-            'user_permissions' => $user->roles()->with('permissions')->get()->pluck('permissions.*.name')->flatten()->unique()->values()
+            'user_permissions' => $userPermissions
         ], 403);
     }
-} 
+}
