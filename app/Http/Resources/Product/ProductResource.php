@@ -41,6 +41,21 @@ class ProductResource extends JsonResource
             "views_count" => $this->resource->views_count,
             "user_id" => $this->resource->user_id,
             
+            // INFORMACIÓN DEL VENDEDOR/USUARIO
+            "user" => $this->resource->user ? [
+                "id" => $this->resource->user->id,
+                "name" => $this->resource->user->name,
+                "surname" => $this->resource->user->surname,
+                "email" => $this->resource->user->email,
+                "phone" => $this->resource->user->phone,
+                "avatar" => $this->resource->user->avatar 
+                    ? UrlHelper::getStorageUrl($this->resource->user->avatar)
+                    : null,
+                "bio" => $this->resource->user->bio,
+                "address_city" => $this->resource->user->address_city,
+                "member_since" => $this->resource->user->created_at->format("Y-m-d h:i:s"),
+            ] : null,
+            
             "created_at" => $this->resource->created_at->format("Y-m-d h:i:s"),
             "images" => $this->resource->images->map(function($image) {
                 return [
