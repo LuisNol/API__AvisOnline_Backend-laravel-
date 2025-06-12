@@ -421,5 +421,48 @@ class ProductController extends Controller
             "message" => 200
         ]);
     }
+
+    /**
+     * Obtener estadísticas del usuario actual
+     * Devuelve el conteo de anuncios y otros datos relevantes
+     */
+    public function getUserStats()
+    {
+        $user = auth('api')->user();
+        if (!$user) {
+            return response()->json(['error' => 'Usuario no autenticado'], 401);
+        }
+
+        // Obtener solo anuncios del usuario actual
+        $userProducts = Product::where('user_id', $user->id);
+        
+        $totalCount = $userProducts->count();
+        $maxAllowed = 5; // Límite fijo de 5 anuncios
+        
+        $stats = [
+            'total_announcements' => $totalCount,
+            'active_announcements' => $userProducts->where('state', 1)->count(),
+            'inactive_announcements' => $userProducts->where('state', 0)->count(),
+            'pending_announcements' => $userProducts->where('state', 2)->count(),
+            'max_allowed' => $maxAllowed,
+            'remaining_slots' => max(0, $maxAllowed - $totalCount),
+            'total_views' => $userProducts->sum('views_count'),
+            'expired_count' => $userProducts->where('expires_at', '<', now())->count(),
+            'expiring_soon' => $userProducts->whereBetween('expires_at', [now(), now()->addDays(7)])->count()
+        ];
+
+        \Log::info('Estadísticas del usuario calculadas:', [
+            'user_id' => $user->id,
+            'total_count' => $totalCount,
+            'max_allowed' => $maxAllowed,
+            'remaining_calculated' => $maxAllowed - $totalCount,
+            'stats' => $stats
+        ]);
+
+        return response()->json([
+            'message' => 200,
+            'stats' => $stats
+        ]);
+    }
 }
 
