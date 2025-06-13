@@ -208,9 +208,9 @@ class AuthController extends Controller
         $user = User::with('roles.permissions')->find(auth('api')->id());
 
         $allPermissions = [
-            'manage-users'         => false,
-            'manage-products'      => false,
-            'manage-own-products'  => false,
+            'manage-users'               => false,
+            'manage-all-announcements'   => false,
+            'manage-own-announcements'   => false,
         ];
 
         $roles = [];
@@ -219,22 +219,22 @@ class AuthController extends Controller
         foreach ($user->roles as $role) {
             $roles[] = $role->name;
             
-            // Rol Admin (ID: 1) - permisos completos
-            if ($role->id == 1) {
+            // Rol Admin - permisos completos
+            if ($role->name === 'Admin') {
                 $allPermissions['manage-users'] = true;
-                $allPermissions['manage-products'] = true;
-                $allPermissions['manage-own-products'] = true;
+                $allPermissions['manage-all-announcements'] = true;
+                $allPermissions['manage-own-announcements'] = true;
             }
-            // Rol Usuario (ID: 2) - permisos limitados
-            elseif ($role->id == 2) {
-                $allPermissions['manage-own-products'] = true;
+            // Rol Usuario - permisos limitados
+            elseif ($role->name === 'Usuario') {
+                $allPermissions['manage-own-announcements'] = true;
             }
         }
         
         // Si no tiene roles asignados pero es type_user=1, dar permisos básicos
         if (empty($roles) && $user->type_user == 1) {
             $roles[] = 'Usuario';
-            $allPermissions['manage-own-products'] = true;
+            $allPermissions['manage-own-announcements'] = true;
         }
 
         return response()->json([

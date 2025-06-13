@@ -58,7 +58,20 @@ class PermissionController extends Controller
     public function destroy($id)
     {
         $permission = Permission::findOrFail($id);
-        $permission->delete();
+        
+        // Verificar que no sea un permiso crítico del sistema
+        $criticalPermissions = ['manage-users', 'manage-all-announcements', 'manage-own-announcements'];
+        if(in_array($permission->name, $criticalPermissions)){
+            return response()->json(['error' => 'No se puede eliminar un permiso crítico del sistema'], 400);
+        }
+        
+        // Verificar si está asignado a algún rol
+        if($permission->roles()->count() > 0){
+            return response()->json(['error' => 'No se puede eliminar un permiso que está asignado a roles'], 400);
+        }
+        
+        // Eliminación física permanente
+        $permission->forceDelete();
 
         return response()->json(null, 204);
     }

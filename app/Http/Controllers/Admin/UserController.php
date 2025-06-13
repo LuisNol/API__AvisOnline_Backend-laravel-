@@ -128,7 +128,28 @@ class UserController extends Controller
     public function destroy($id)
     {
         $user = User::findOrFail($id);
-        $user->delete();
+        
+        // Verificar que no se pueda eliminar el usuario logueado
+        if($user->id == auth('api')->user()->id){
+            return response()->json(['error' => 'No puedes eliminarte a ti mismo'], 400);
+        }
+        
+        // Verificar que no sea el último administrador
+        if($user->hasRole('Admin')){
+            $adminCount = User::whereHas('roles', function($query){
+                $query->where('name', 'Admin');
+            })->count();
+            
+            if($adminCount <= 1){
+                return response()->json(['error' => 'No se puede eliminar el último administrador'], 400);
+            }
+        }
+        
+        // Desasociar roles antes de eliminar
+        $user->roles()->detach();
+        
+        // Eliminación física permanente
+        $user->forceDelete();
 
         return response()->json(null, 204);
     }

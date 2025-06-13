@@ -6,29 +6,28 @@ use Carbon\Carbon;
 use App\Models\Sale\Review;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Discount\DiscountProduct;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Product extends Model
 {
-    use HasFactory,SoftDeletes;
+    use HasFactory;
     protected $fillable = [
         "title",
         "slug",
         "sku",
         "price_pen",
-        "price_usd",
-        "resumen",
         "imagen",
         "state",
         "description",
         "tags",
-        "brand_id",
         "categorie_first_id",
-        "categorie_second_id",
-        "categorie_third_id",
-        "stock",
-        "user_id"
+        "user_id",
+        // CAMPOS PARA ANUNCIOS
+        "location",
+        "contact_phone", 
+        "contact_email",
+        "expires_at",
+        "views_count"
     ];
 
     public function setCreatedAtAttribute($value){
@@ -43,16 +42,8 @@ class Product extends Model
     public function categorie_first(){
         return $this->belongsTo(Categorie::class,"categorie_first_id");
     }
-    public function categorie_second(){
-        return $this->belongsTo(Categorie::class,"categorie_second_id");
-    }
-    public function categorie_third(){
-        return $this->belongsTo(Categorie::class,"categorie_third_id");
-    }
 
-    public function brand(){
-        return $this->belongsTo(Brand::class,"brand_id");
-    }
+
 
     public function user()
     {
@@ -77,6 +68,15 @@ class Product extends Model
 
     public function reviews() {
         return $this->hasMany(Review::class,"product_id");
+    }
+
+    // NUEVAS RELACIONES PARA ANUNCIOS
+    public function anuncio_views() {
+        return $this->hasMany(\App\Models\AnuncioView::class,"product_id");
+    }
+
+    public function user() {
+        return $this->belongsTo(\App\Models\User::class);
     }
 
     public function getReviewsCountAttribute() {
@@ -122,38 +122,14 @@ class Product extends Model
         return $discount;
     }
 
-    public function getDiscountBrandAttribute() {
-        date_default_timezone_set("America/Lima");
-        $discount = null;
-        foreach ($this->brand->discount_brands as $key => $discount_brand) {
-            if($discount_brand->discount && $discount_brand->discount->type_campaing == 1 &&
-            $discount_brand->discount->state == 1){
-                // [24-01-2024, 25  ,27-01-2024]
-                if(Carbon::now()->between($discount_brand->discount->start_date,Carbon::parse(
-                    $discount_brand->discount->end_date)->addDays(1))){
-                    $discount = $discount_brand->discount;
-                    break;
-                }
-            }
-        }
-        return $discount;
-    }
 
-    public function scopeFilterAdvanceProduct($query,$search,$categorie_first_id,$categorie_second_id,$categorie_third_id,$brand_id){                 
+
+    public function scopeFilterAdvanceProduct($query,$search,$categorie_id){                 
         if($search){
             $query->where("title","like","%".$search."%");
         }
-        if($categorie_first_id){
-            $query->where("categorie_first_id",$categorie_first_id);
-        }
-        if($categorie_second_id){
-            $query->where("categorie_second_id",$categorie_second_id);
-        }
-        if($categorie_third_id){
-            $query->where("categorie_third_id",$categorie_third_id);
-        }
-        if($brand_id){
-            $query->where("brand_id",$brand_id);
+        if($categorie_id){
+            $query->where("categorie_first_id",$categorie_id);
         }
         return $query;
     }

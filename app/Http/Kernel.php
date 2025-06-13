@@ -64,7 +64,15 @@ class Kernel extends HttpKernel
         'signed' => \App\Http\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
+<<<<<<< HEAD
         'permission' => \App\Http\Middleware\CheckPermission::class,
         'product.limit' => \App\Http\Middleware\CheckProductLimit::class,
+=======
+        
+        // ====================================
+        // MIDDLEWARES DE PERMISOS AVISONLINE
+        // ====================================
+        'permission' => \App\Http\Middleware\CheckPermissionAvisOnline::class,
+>>>>>>> Jefer
     ];
 }

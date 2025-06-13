@@ -68,7 +68,22 @@ class RoleController extends Controller
     public function destroy($id)
     {
         $role = Role::findOrFail($id);
-        $role->delete();
+        
+        // Verificar que no sea un rol crítico del sistema
+        if(in_array($role->name, ['Admin', 'usuario'])){
+            return response()->json(['error' => 'No se puede eliminar un rol del sistema'], 400);
+        }
+        
+        // Verificar si tiene usuarios asignados
+        if($role->users()->count() > 0){
+            return response()->json(['error' => 'No se puede eliminar un rol que tiene usuarios asignados'], 400);
+        }
+        
+        // Desasociar permisos antes de eliminar
+        $role->permissions()->detach();
+        
+        // Eliminación física permanente
+        $role->forceDelete();
 
         return response()->json(null, 204);
     }
