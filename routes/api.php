@@ -80,7 +80,7 @@ Route::group([
     Route::middleware(['permission:manage-products|manage-own-products'])->group(function () {
         Route::get("products/config", [ProductController::class, "config"]);
         Route::post("products/index", [ProductController::class, "index"]);
-        Route::post("products", [ProductController::class, "store"]);
+        Route::post("products", [ProductController::class, "store"])->middleware('product.limit');
         Route::get("products/{id}", [ProductController::class, "show"]);
         Route::post("products/{id}", [ProductController::class, "update"]);
         Route::delete("products/{id}", [ProductController::class, "destroy"]);
