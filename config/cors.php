@@ -11,7 +11,7 @@ return [
         'http://127.0.0.1:4200',
         'http://127.0.0.1:5000',
         'https://www.admin.avisonline.store',
-        'https://www.avisonline.store/',
+        'https://www.avisonline.store',
 
     ],
 
