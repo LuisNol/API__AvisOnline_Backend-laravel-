@@ -101,8 +101,13 @@ print_status "Verificando dependencias del proyecto..."
 if [ -d "vendor" ] && [ -f "vendor/autoload.php" ]; then
     print_status "Dependencias del proyecto encontradas. Usando dependencias existentes."
 else
-    print_error "Error: Dependencias no encontradas. Verifica que vendor/ existe en el proyecto."
-    exit 1
+    print_warning "Vendor no encontrado en el directorio actual. Verificando en el directorio del proyecto..."
+    if [ -d "/var/www/API__AvisOnline_Backend-laravel-/vendor" ] && [ -f "/var/www/API__AvisOnline_Backend-laravel-/vendor/autoload.php" ]; then
+        print_status "Dependencias encontradas en /var/www/API__AvisOnline_Backend-laravel-/vendor/"
+    else
+        print_error "Error: Dependencias no encontradas. Verifica que vendor/ existe en el proyecto."
+        exit 1
+    fi
 fi
 
 # Ejecutar comandos de Laravel
