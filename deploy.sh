@@ -105,8 +105,14 @@ else
     if [ -d "/var/www/API__AvisOnline_Backend-laravel-/vendor" ] && [ -f "/var/www/API__AvisOnline_Backend-laravel-/vendor/autoload.php" ]; then
         print_status "Dependencias encontradas en /var/www/API__AvisOnline_Backend-laravel-/vendor/"
     else
-        print_error "Error: Dependencias no encontradas. Verifica que vendor/ existe en el proyecto."
-        exit 1
+        print_warning "Vendor no encontrado. Verificando en el contenedor..."
+        # Verificar dentro del contenedor
+        if docker-compose -f docker-compose.prod.yml exec app ls -la /var/www/vendor/autoload.php 2>/dev/null; then
+            print_status "Dependencias encontradas en el contenedor. Continuando..."
+        else
+            print_error "Error: Dependencias no encontradas. Verifica que vendor/ existe en el proyecto."
+            exit 1
+        fi
     fi
 fi
 
