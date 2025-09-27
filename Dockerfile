@@ -31,11 +31,11 @@ COPY . /var/www
 # Cambiar permisos
 RUN chown -R www:www /var/www
 
-# Cambiar al usuario www
-USER www
-
 # Crear directorio vendor con permisos correctos
 RUN mkdir -p /var/www/vendor && chown -R www:www /var/www/vendor
+
+# Cambiar al usuario www
+USER www
 
 # Exponer puerto
 EXPOSE 9000
