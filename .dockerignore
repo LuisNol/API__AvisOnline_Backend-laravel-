@@ -20,7 +20,6 @@ coverage
 *.swp
 *.swo
 *~
-vendor
 storage/app/*
 storage/framework/cache/*
 storage/framework/sessions/*
