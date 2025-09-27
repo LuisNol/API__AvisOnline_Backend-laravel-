@@ -113,6 +113,14 @@ else
     fi
 fi
 
+# Arreglar permisos antes de instalar dependencias
+print_status "Arreglando permisos del directorio..."
+chown -R root:root /var/www/API__AvisOnline_Backend-laravel-
+chmod -R 755 /var/www/API__AvisOnline_Backend-laravel-
+
+# Configurar Git para el directorio
+git config --global --add safe.directory /var/www/API__AvisOnline_Backend-laravel-
+
 # Instalar dependencias si no existen
 print_status "Verificando si necesitamos instalar dependencias..."
 if [ ! -d "vendor" ] || [ ! -f "vendor/autoload.php" ]; then

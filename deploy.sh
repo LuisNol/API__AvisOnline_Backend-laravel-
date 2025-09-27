@@ -48,17 +48,17 @@ sed -i 's|GOOGLE_REDIRECT_URI=http://localhost:8000/auth/main|GOOGLE_REDIRECT_UR
 
 # Arreglar permisos del directorio
 print_status "Arreglando permisos del directorio..."
-chown -R root:root /var/www
-chmod -R 755 /var/www
+chown -R root:root /var/www/API__AvisOnline_Backend-laravel-
+chmod -R 755 /var/www/API__AvisOnline_Backend-laravel-
 
 # Configurar Git para el directorio
-git config --global --add safe.directory /var/www
+git config --global --add safe.directory /var/www/API__AvisOnline_Backend-laravel-
 
 # Crear directorio vendor
 print_status "Creando directorio vendor..."
-mkdir -p /var/www/vendor
-chown -R root:root /var/www/vendor
-chmod -R 755 /var/www/vendor
+mkdir -p /var/www/API__AvisOnline_Backend-laravel-/vendor
+chown -R root:root /var/www/API__AvisOnline_Backend-laravel-/vendor
+chmod -R 755 /var/www/API__AvisOnline_Backend-laravel-/vendor
 
 # Crear directorio vendor en el proyecto también
 mkdir -p vendor
