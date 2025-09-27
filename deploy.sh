@@ -112,6 +112,16 @@ print_status "Ejecutando comandos de Laravel..."
 if [ -d "vendor" ] && [ -f "vendor/autoload.php" ]; then
     print_status "Dependencias instaladas correctamente. Ejecutando comandos de Laravel..."
     
+    # Verificar vendor dentro del contenedor
+    print_status "Verificando vendor dentro del contenedor..."
+    docker-compose -f docker-compose.prod.yml exec app ls -la /var/www/vendor/
+    docker-compose -f docker-compose.prod.yml exec app ls -la /var/www/vendor/autoload.php
+    
+    # Verificar permisos
+    print_status "Verificando permisos del directorio..."
+    docker-compose -f docker-compose.prod.yml exec app whoami
+    docker-compose -f docker-compose.prod.yml exec app ls -la /var/www/
+    
     # Generar clave de aplicación
     docker-compose -f docker-compose.prod.yml exec app php artisan key:generate --force
     
