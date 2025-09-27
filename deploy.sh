@@ -5,6 +5,9 @@
 
 echo "🚀 Iniciando despliegue de producción..."
 
+# Dar permisos de ejecución al script
+chmod +x deploy.sh
+
 # Colores para output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
