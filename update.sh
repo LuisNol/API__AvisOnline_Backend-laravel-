@@ -104,9 +104,22 @@ else
         print_status "Verificando si el proyecto se copió correctamente..."
         docker-compose -f docker-compose.prod.yml exec app ls -la /var/www/ | grep -E "(artisan|composer.json|app)"
         
+        # Verificar en el host
+        print_status "Verificando en el host..."
+        ls -la /var/www/API__AvisOnline_Backend-laravel-/vendor/ 2>/dev/null || echo "Vendor no existe en el host"
+        
         print_warning "El vendor no está en el contenedor. Esto puede ser normal si se usa el volumen."
         print_status "Continuando con la verificación de volumen..."
     fi
+fi
+
+# Instalar dependencias si no existen
+print_status "Verificando si necesitamos instalar dependencias..."
+if [ ! -d "vendor" ] || [ ! -f "vendor/autoload.php" ]; then
+    print_warning "Vendor no encontrado. Instalando dependencias..."
+    docker-compose -f docker-compose.prod.yml exec app composer install --no-dev --optimize-autoloader --ignore-platform-req=ext-gd
+else
+    print_status "Vendor encontrado. Continuando..."
 fi
 
 # Ejecutar comandos de Laravel
