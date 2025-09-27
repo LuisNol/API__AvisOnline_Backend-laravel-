@@ -125,7 +125,24 @@ git config --global --add safe.directory /var/www/API__AvisOnline_Backend-larave
 print_status "Verificando si necesitamos instalar dependencias..."
 if [ ! -d "vendor" ] || [ ! -f "vendor/autoload.php" ]; then
     print_warning "Vendor no encontrado. Instalando dependencias..."
+    
+    # Crear directorio vendor con permisos correctos
+    print_status "Creando directorio vendor con permisos correctos..."
+    mkdir -p /var/www/API__AvisOnline_Backend-laravel-/vendor
+    chown -R root:root /var/www/API__AvisOnline_Backend-laravel-/vendor
+    chmod -R 755 /var/www/API__AvisOnline_Backend-laravel-/vendor
+    
+    # Instalar dependencias
+    print_status "Instalando dependencias con Composer..."
     docker-compose -f docker-compose.prod.yml exec app composer install --no-dev --optimize-autoloader --ignore-platform-req=ext-gd
+    
+    # Verificar que se instaló correctamente
+    if [ -f "/var/www/API__AvisOnline_Backend-laravel-/vendor/autoload.php" ]; then
+        print_status "Dependencias instaladas correctamente."
+    else
+        print_error "Error: No se pudieron instalar las dependencias."
+        exit 1
+    fi
 else
     print_status "Vendor encontrado. Continuando..."
 fi

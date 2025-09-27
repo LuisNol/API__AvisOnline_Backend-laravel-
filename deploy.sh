@@ -101,18 +101,24 @@ print_status "Verificando dependencias del proyecto..."
 if [ -d "vendor" ] && [ -f "vendor/autoload.php" ]; then
     print_status "Dependencias del proyecto encontradas. Usando dependencias existentes."
 else
-    print_warning "Vendor no encontrado en el directorio actual. Verificando en el directorio del proyecto..."
-    if [ -d "/var/www/API__AvisOnline_Backend-laravel-/vendor" ] && [ -f "/var/www/API__AvisOnline_Backend-laravel-/vendor/autoload.php" ]; then
-        print_status "Dependencias encontradas en /var/www/API__AvisOnline_Backend-laravel-/vendor/"
+    print_warning "Vendor no encontrado. Instalando dependencias..."
+    
+    # Crear directorio vendor con permisos correctos
+    print_status "Creando directorio vendor con permisos correctos..."
+    mkdir -p /var/www/API__AvisOnline_Backend-laravel-/vendor
+    chown -R root:root /var/www/API__AvisOnline_Backend-laravel-/vendor
+    chmod -R 755 /var/www/API__AvisOnline_Backend-laravel-/vendor
+    
+    # Instalar dependencias
+    print_status "Instalando dependencias con Composer..."
+    docker-compose -f docker-compose.prod.yml exec app composer install --no-dev --optimize-autoloader --ignore-platform-req=ext-gd
+    
+    # Verificar que se instaló correctamente
+    if [ -f "/var/www/API__AvisOnline_Backend-laravel-/vendor/autoload.php" ]; then
+        print_status "Dependencias instaladas correctamente."
     else
-        print_warning "Vendor no encontrado. Verificando en el contenedor..."
-        # Verificar dentro del contenedor
-        if docker-compose -f docker-compose.prod.yml exec app ls -la /var/www/vendor/autoload.php 2>/dev/null; then
-            print_status "Dependencias encontradas en el contenedor. Continuando..."
-        else
-            print_error "Error: Dependencias no encontradas. Verifica que vendor/ existe en el proyecto."
-            exit 1
-        fi
+        print_error "Error: No se pudieron instalar las dependencias."
+        exit 1
     fi
 fi
 
