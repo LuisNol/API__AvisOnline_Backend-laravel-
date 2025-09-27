@@ -128,10 +128,13 @@ mkdir -p /var/www/API__AvisOnline_Backend-laravel-/bootstrap/cache
 
 # Configurar permisos para storage y bootstrap
 print_status "Configurando permisos para storage y bootstrap..."
-chown -R root:root /var/www/API__AvisOnline_Backend-laravel-/storage
-chown -R root:root /var/www/API__AvisOnline_Backend-laravel-/bootstrap/cache
-chmod -R 777 /var/www/API__AvisOnline_Backend-laravel-/storage
-chmod -R 777 /var/www/API__AvisOnline_Backend-laravel-/bootstrap/cache
+chown -R www-data:www-data /var/www/API__AvisOnline_Backend-laravel-/storage
+chown -R www-data:www-data /var/www/API__AvisOnline_Backend-laravel-/bootstrap/cache
+chown -R www-data:www-data /var/www/API__AvisOnline_Backend-laravel-/vendor
+chmod -R 775 /var/www/API__AvisOnline_Backend-laravel-/storage
+chmod -R 775 /var/www/API__AvisOnline_Backend-laravel-/bootstrap/cache
+chmod -R 775 /var/www/API__AvisOnline_Backend-laravel-/vendor
+chmod 664 /var/www/API__AvisOnline_Backend-laravel-/.env
 
 # Configurar Git para el directorio
 print_status "Configurando Git como directorio seguro..."
