@@ -43,6 +43,20 @@ sed -i 's/APP_DEBUG=true/APP_DEBUG=false/' .env
 sed -i 's|APP_URL=http://localhost:8000|APP_URL=https://apis.avisonline.store|' .env
 sed -i 's|GOOGLE_REDIRECT_URI=http://localhost:8000/auth/main|GOOGLE_REDIRECT_URI=https://apis.avisonline.store/auth/main|' .env
 
+# Arreglar permisos del directorio
+print_status "Arreglando permisos del directorio..."
+chown -R root:root /var/www
+chmod -R 755 /var/www
+
+# Configurar Git para el directorio
+git config --global --add safe.directory /var/www
+
+# Crear directorio vendor
+print_status "Creando directorio vendor..."
+mkdir -p /var/www/vendor
+chown -R root:root /var/www/vendor
+chmod -R 755 /var/www/vendor
+
 # Crear directorio para certificados SSL
 print_status "Creando directorio para certificados SSL..."
 mkdir -p ssl
