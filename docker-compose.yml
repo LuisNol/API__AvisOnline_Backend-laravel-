@@ -32,10 +32,7 @@ services:
     container_name: laravel_db
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: laravel_ecommerce
-      MYSQL_ROOT_PASSWORD: root_password
-      MYSQL_PASSWORD: laravel_password
-      MYSQL_USER: laravel_user
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
     volumes:
       - dbdata:/var/lib/mysql
     ports:
