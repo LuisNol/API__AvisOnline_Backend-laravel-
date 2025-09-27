@@ -107,7 +107,7 @@ else
     print_status "Creando directorio vendor con permisos correctos..."
     mkdir -p /var/www/API__AvisOnline_Backend-laravel-/vendor
     chown -R root:root /var/www/API__AvisOnline_Backend-laravel-/vendor
-    chmod -R 755 /var/www/API__AvisOnline_Backend-laravel-/vendor
+    chmod -R 777 /var/www/API__AvisOnline_Backend-laravel-/vendor
     
     # Instalar dependencias
     print_status "Instalando dependencias con Composer..."

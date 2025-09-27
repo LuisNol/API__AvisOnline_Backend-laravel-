@@ -119,6 +119,8 @@ chown -R root:root /var/www/API__AvisOnline_Backend-laravel-
 chmod -R 755 /var/www/API__AvisOnline_Backend-laravel-
 
 # Configurar Git para el directorio
+print_status "Configurando Git como directorio seguro..."
+git config --global --add safe.directory /var/www/API__AvisOnline_Backend-laravel-
 git config --global --add safe.directory /var/www/API__AvisOnline_Backend-laravel-
 
 # Instalar dependencias si no existen
@@ -126,11 +128,19 @@ print_status "Verificando si necesitamos instalar dependencias..."
 if [ ! -d "vendor" ] || [ ! -f "vendor/autoload.php" ]; then
     print_warning "Vendor no encontrado. Instalando dependencias..."
     
+    # Limpiar vendor si existe
+    print_status "Limpiando vendor existente..."
+    rm -rf /var/www/API__AvisOnline_Backend-laravel-/vendor
+    
     # Crear directorio vendor con permisos correctos
     print_status "Creando directorio vendor con permisos correctos..."
     mkdir -p /var/www/API__AvisOnline_Backend-laravel-/vendor
     chown -R root:root /var/www/API__AvisOnline_Backend-laravel-/vendor
-    chmod -R 755 /var/www/API__AvisOnline_Backend-laravel-/vendor
+    chmod -R 777 /var/www/API__AvisOnline_Backend-laravel-/vendor
+    
+    # Configurar Git dentro del contenedor
+    print_status "Configurando Git dentro del contenedor..."
+    docker-compose -f docker-compose.prod.yml exec app git config --global --add safe.directory /var/www/API__AvisOnline_Backend-laravel-
     
     # Instalar dependencias
     print_status "Instalando dependencias con Composer..."
