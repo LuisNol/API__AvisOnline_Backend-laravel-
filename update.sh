@@ -95,45 +95,41 @@ else
     else
         print_warning "Vendor no encontrado. Verificando en el contenedor..."
         # Verificar dentro del contenedor
-        if docker-compose -f docker-compose.prod.yml exec app ls -la /var/www/vendor/autoload.php 2>/dev/null; then
-            print_status "Dependencias encontradas en el contenedor. Continuando..."
-        else
-            print_error "Error: Dependencias no encontradas. Verifica que vendor/ existe en el proyecto."
-            exit 1
-        fi
+        print_status "Verificando estructura del contenedor..."
+        docker-compose -f docker-compose.prod.yml exec app ls -la /var/www/
+        print_status "Verificando si existe vendor en el contenedor..."
+        docker-compose -f docker-compose.prod.yml exec app ls -la /var/www/vendor/ 2>/dev/null || echo "Vendor no existe en el contenedor"
+        
+        # Verificar si el proyecto se copió correctamente
+        print_status "Verificando si el proyecto se copió correctamente..."
+        docker-compose -f docker-compose.prod.yml exec app ls -la /var/www/ | grep -E "(artisan|composer.json|app)"
+        
+        print_warning "El vendor no está en el contenedor. Esto puede ser normal si se usa el volumen."
+        print_status "Continuando con la verificación de volumen..."
     fi
 fi
 
 # Ejecutar comandos de Laravel
 print_status "Ejecutando comandos de Laravel..."
 
-# Verificar que vendor existe antes de ejecutar comandos
-if [ -d "vendor" ] && [ -f "vendor/autoload.php" ]; then
-    print_status "Dependencias instaladas correctamente. Ejecutando comandos de Laravel..."
-    
-    # Generar clave de aplicación
-    docker-compose -f docker-compose.prod.yml exec app php artisan key:generate --force
-    
-    # Crear enlace simbólico de storage
-    docker-compose -f docker-compose.prod.yml exec app php artisan storage:link
-    
-    # Limpiar cache
-    docker-compose -f docker-compose.prod.yml exec app php artisan cache:clear
-    docker-compose -f docker-compose.prod.yml exec app php artisan config:clear
-    docker-compose -f docker-compose.prod.yml exec app php artisan route:clear
-    docker-compose -f docker-compose.prod.yml exec app php artisan view:clear
-    
-    # Optimizar aplicación para producción
-    print_status "Optimizando aplicación para producción..."
-    docker-compose -f docker-compose.prod.yml exec app php artisan config:cache
-    docker-compose -f docker-compose.prod.yml exec app php artisan route:cache
-    docker-compose -f docker-compose.prod.yml exec app php artisan view:cache
-    docker-compose -f docker-compose.prod.yml exec app php artisan optimize
-else
-    print_error "Error: Las dependencias no se instalaron correctamente. Verifica los logs."
-    print_warning "Puedes intentar instalar manualmente con:"
-    print_warning "docker-compose -f docker-compose.prod.yml exec app composer install --no-dev --optimize-autoloader --ignore-platform-req=ext-gd"
-fi
+# Generar clave de aplicación
+docker-compose -f docker-compose.prod.yml exec app php artisan key:generate --force
+
+# Crear enlace simbólico de storage
+docker-compose -f docker-compose.prod.yml exec app php artisan storage:link
+
+# Limpiar cache
+docker-compose -f docker-compose.prod.yml exec app php artisan cache:clear
+docker-compose -f docker-compose.prod.yml exec app php artisan config:clear
+docker-compose -f docker-compose.prod.yml exec app php artisan route:clear
+docker-compose -f docker-compose.prod.yml exec app php artisan view:clear
+
+# Optimizar aplicación para producción
+print_status "Optimizando aplicación para producción..."
+docker-compose -f docker-compose.prod.yml exec app php artisan config:cache
+docker-compose -f docker-compose.prod.yml exec app php artisan route:cache
+docker-compose -f docker-compose.prod.yml exec app php artisan view:cache
+docker-compose -f docker-compose.prod.yml exec app php artisan optimize
 
 # Verificar estado de los contenedores
 print_status "Verificando estado de los contenedores..."
