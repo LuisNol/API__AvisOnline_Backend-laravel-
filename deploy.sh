@@ -96,22 +96,20 @@ docker-compose -f docker-compose.prod.yml up -d
 print_status "Esperando a que la base de datos esté lista..."
 sleep 30
 
-# Instalar dependencias de Composer
-print_status "Instalando dependencias de Composer..."
-
-# Intentar instalar dependencias
-if ! docker-compose -f docker-compose.prod.yml exec app composer install --no-dev --optimize-autoloader --ignore-platform-req=ext-gd; then
-    print_warning "Error al instalar dependencias. Intentando método alternativo..."
-    
-    # Método alternativo: entrar al contenedor
-    docker-compose -f docker-compose.prod.yml exec app bash -c "composer install --no-dev --optimize-autoloader --ignore-platform-req=ext-gd"
+# Verificar que vendor existe (ya viene del proyecto)
+print_status "Verificando dependencias del proyecto..."
+if [ -d "vendor" ] && [ -f "vendor/autoload.php" ]; then
+    print_status "Dependencias del proyecto encontradas. Usando dependencias existentes."
+else
+    print_error "Error: Dependencias no encontradas. Verifica que vendor/ existe en el proyecto."
+    exit 1
 fi
 
 # Ejecutar comandos de Laravel
 print_status "Ejecutando comandos de Laravel..."
 
 # Verificar que vendor existe antes de ejecutar comandos
-if [ -d "/var/www/vendor" ] && [ -f "/var/www/vendor/autoload.php" ]; then
+if [ -d "vendor" ] && [ -f "vendor/autoload.php" ]; then
     print_status "Dependencias instaladas correctamente. Ejecutando comandos de Laravel..."
     
     # Generar clave de aplicación

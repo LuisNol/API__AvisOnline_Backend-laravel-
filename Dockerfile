@@ -28,11 +28,8 @@ WORKDIR /var/www
 # Copiar archivos de la aplicación
 COPY . /var/www
 
-# Cambiar permisos
+# Cambiar permisos de TODO el directorio
 RUN chown -R www:www /var/www
-
-# Crear directorio vendor con permisos correctos
-RUN mkdir -p /var/www/vendor && chown -R www:www /var/www/vendor
 
 # Cambiar al usuario www
 USER www
