@@ -51,6 +51,21 @@ print_status "Arreglando permisos del directorio..."
 chown -R root:root /var/www/API__AvisOnline_Backend-laravel-
 chmod -R 755 /var/www/API__AvisOnline_Backend-laravel-
 
+# Crear y configurar directorios de Laravel
+print_status "Creando directorios de Laravel..."
+mkdir -p /var/www/API__AvisOnline_Backend-laravel-/storage/logs
+mkdir -p /var/www/API__AvisOnline_Backend-laravel-/storage/framework/cache
+mkdir -p /var/www/API__AvisOnline_Backend-laravel-/storage/framework/sessions
+mkdir -p /var/www/API__AvisOnline_Backend-laravel-/storage/framework/views
+mkdir -p /var/www/API__AvisOnline_Backend-laravel-/bootstrap/cache
+
+# Configurar permisos para storage y bootstrap
+print_status "Configurando permisos para storage y bootstrap..."
+chown -R root:root /var/www/API__AvisOnline_Backend-laravel-/storage
+chown -R root:root /var/www/API__AvisOnline_Backend-laravel-/bootstrap/cache
+chmod -R 777 /var/www/API__AvisOnline_Backend-laravel-/storage
+chmod -R 777 /var/www/API__AvisOnline_Backend-laravel-/bootstrap/cache
+
 # Configurar Git para el directorio
 git config --global --add safe.directory /var/www/API__AvisOnline_Backend-laravel-
 
