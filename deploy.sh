@@ -88,6 +88,10 @@ docker-compose -f docker-compose.prod.yml up -d
 print_status "Esperando a que la base de datos esté lista..."
 sleep 30
 
+# Instalar dependencias de Composer
+print_status "Instalando dependencias de Composer..."
+docker-compose -f docker-compose.prod.yml exec app composer install --no-dev --optimize-autoloader --ignore-platform-req=ext-gd
+
 # Ejecutar comandos de Laravel
 print_status "Ejecutando comandos de Laravel..."
 
